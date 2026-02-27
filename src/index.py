@@ -1,15 +1,27 @@
 import os
 import faiss
 import numpy as np
+from tqdm.auto import tqdm
 
 
-def build_index(texts, embed_fn, index_path):
-    vecs = embed_fn(texts)
-    dim  = vecs.shape[1]
+def _iter_texts(texts, start, end):
+    chunk = texts[start:end]
+    if isinstance(chunk, dict):
+        return chunk["text"]
+    return list(chunk)
+
+
+def build_index(texts, embed_fn, index_path, dim=768, chunk_size=50_000):
+    n = len(texts)
     cpu_idx = faiss.IndexFlatIP(dim)
-    cpu_idx.add(vecs)
+
+    for start in tqdm(range(0, n, chunk_size), desc="Building index", unit="chunk"):
+        batch = _iter_texts(texts, start, min(start + chunk_size, n))
+        vecs  = embed_fn(batch)                # [chunk, dim] float32
+        cpu_idx.add(vecs)
+
     faiss.write_index(cpu_idx, index_path)
-    print(f"Saved FAISS index in {index_path}  ({cpu_idx.ntotal:,} docs, dim={dim})")
+    print(f"Saved FAISS index → {index_path}  ({cpu_idx.ntotal:,} docs, dim={dim})")
     return _to_gpu(cpu_idx)
 
 
@@ -20,16 +32,16 @@ def load_index(index_path):
     return _to_gpu(cpu_idx)
 
 
-def build_or_load_index(texts, embed_fn, index_path):
+def build_or_load_index(texts, embed_fn, index_path, dim=768, chunk_size=50_000):
     if os.path.exists(index_path):
         print(f"Found cached index at '{index_path}'")
         return load_index(index_path)
-    print("No cached index — building from corpus …")
-    return build_index(texts, embed_fn, index_path)
+    print("No cached index, building from corpus in chunks")
+    return build_index(texts, embed_fn, index_path, dim=dim, chunk_size=chunk_size)
 
 
-def rebuild_index(texts, embed_fn, index_path):
-    return build_index(texts, embed_fn, index_path)
+def rebuild_index(texts, embed_fn, index_path, dim=768, chunk_size=50_000):
+    return build_index(texts, embed_fn, index_path, dim=dim, chunk_size=chunk_size)
 
 
 def retrieve(index, query_vecs, k,):
