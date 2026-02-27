@@ -21,15 +21,17 @@ def embed_sentences(sentences, model, tokenizer, device, batch_size=64):
     all_vecs = []
     it = range(0, len(sentences), batch_size)
     it = tqdm(it, desc="Embedding sentences", unit="batch")
-    for i in it:
-        batch = sentences[i : i + batch_size]
-        enc   = tokenizer(
-            batch, padding=True, truncation=True,
-            max_length=512, return_tensors="pt",
-        ).to(device)
-        out  = model(**enc)
-        vecs = _mean_pooling(out.last_hidden_state, enc["attention_mask"])
-        all_vecs.append(vecs.cpu().float().detach().numpy())
+    with torch.no_grad():
+        for i in it:
+            batch = sentences[i : i + batch_size]
+            enc   = tokenizer(
+                batch, padding=True, truncation=True,
+                max_length=512, return_tensors="pt",
+            ).to(device)
+            out  = model(**enc)
+            vecs = _mean_pooling(out.last_hidden_state, enc["attention_mask"])
+            all_vecs.append(vecs.cpu().float().numpy())
+            del enc, out, vecs
     return np.vstack(all_vecs)
 
 # Example usage:

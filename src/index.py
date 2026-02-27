@@ -1,6 +1,8 @@
 import os
+import gc
 import faiss
 import numpy as np
+import torch
 from tqdm.auto import tqdm
 
 
@@ -19,6 +21,9 @@ def build_index(texts, embed_fn, index_path, dim=768, chunk_size=50_000):
         batch = _iter_texts(texts, start, min(start + chunk_size, n))
         vecs  = embed_fn(batch)                # [chunk, dim] float32
         cpu_idx.add(vecs)
+        del vecs, batch
+        gc.collect()
+        torch.cuda.empty_cache()
 
     faiss.write_index(cpu_idx, index_path)
     print(f"Saved FAISS index → {index_path}  ({cpu_idx.ntotal:,} docs, dim={dim})")
