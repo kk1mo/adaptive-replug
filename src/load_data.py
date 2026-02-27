@@ -36,3 +36,8 @@ def load_mmlu():
     print(f"dev={len(mmlu_dev):,}  test={len(mmlu_test):,}  subjects={n_subjects}")
     print(f"category distribution (test): { {k: v for k, v in category_counts.items()} }")
     return mmlu_dev, mmlu_test
+
+def divide_trainset(trainset, test_size=1000):
+    split = trainset.train_test_split(test_size=test_size, seed=42)
+    train_ds, test_ds = split["train"], split["test"]
+    return train_ds, test_ds
