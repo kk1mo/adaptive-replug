@@ -8,12 +8,12 @@ def load_GPT2(model_name, device):
     gpt2_model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
     gpt2_model.eval()
     gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
-    gpt2_maxlength = gpt2_model.config.n_positions
-    return gpt2_model, gpt2_tokenizer, gpt2_maxlength
+    # gpt2_maxlength = gpt2_model.config.n_positions
+    return gpt2_model, gpt2_tokenizer
 
 
 @torch.no_grad()
-def score_gpt2(model, tokenizer, prefix, continuation, max_length, device):
+def score_gpt2(model, tokenizer, prefix, continuation, device):
     prefix_ids = tokenizer.encode(prefix)
     continuation_ids = tokenizer.encode(continuation)
 
@@ -29,6 +29,6 @@ def score_gpt2(model, tokenizer, prefix, continuation, max_length, device):
     return score
 
 # Example usage:
-# >>> m, t, l = load_GPT2("gpt2", "cuda")
-# >>> print(score_gpt2(m, t, "The capital of France is ", "Paris.", l, "cuda"))
+# >>> m, t = load_GPT2("gpt2", "cuda")
+# >>> print(score_gpt2(m, t, "The capital of France is ", "Paris.", "cuda"))
 # -16.95
